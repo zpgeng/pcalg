@@ -71,6 +71,7 @@ importFrom("sfsmisc", digitsBase, is.whole)
 
 importFrom("fastICA", fastICA)
 importFrom("clue", solve_LSAP)
+import("torch")
 ## importFrom("dagitty", dagitty, isAdjustmentSet, adjustmentSets)
 ###----- Exports ------------------------------------------------------
 

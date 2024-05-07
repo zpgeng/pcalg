@@ -27,7 +27,6 @@ setAs("LINGAM", "amat", function(from) {
 
 
 ## DEPRECATED:
-#???
 LINGAM <- function(X, verbose = FALSE)
 ## Copyright (c) 2013 - 2015  Jonas Peters  [peters@stat.math.ethz.ch]
 ## All rights reserved.  See the file COPYING for license terms.
@@ -66,10 +65,65 @@ allPerm <- function(n) {
   p
 }
 
+## Definition of ICA-SG
+
+lsg <- function(m, W, X){
+  # Note that m and W should be torch tensors
+  p1 <- 1 / (torch_abs(torch_det(W)))^(2/3)
+  S1 <- torch_zeros(ncol(X)); S2 <- torch_zeros(ncol(X))
+  for (j in 1:ncol(X)) {
+    for (i in 1:nrow(X)){
+      flag <- torch_matmul(torch_t(W[, j]), X[i, ] - m)
+      S1[j] <- torch_where(flag <= 0, 
+                           S1[j] + torch_pow(flag, 2), S1[j])
+      S2[j] <- torch_where(flag > 0,
+                           S2[j] + torch_pow(flag, 2), S2[j])
+    }
+  }
+  p2 <- torch_prod(torch_pow(S1, 1/3) + torch_pow(S2, 1/3))
+  torch_mul(p1, p2)
+}
+
+ICA.SG <- function(X){
+  # center the data matrix X
+  X.mean <- torch_mean(X, dim = 1)
+  X.centered <- X - X.mean
+  X.centered <- X.centered
+
+  temp0 <- fastICA(X, n.comp = ncol(X))
+  temp <- t(temp0$K %*% temp0$W)
+
+  # Initialize W to conform with the dimension
+  m <- torch_zeros(ncol(X), requires_grad = TRUE)
+  W <- torch_tensor(temp, requires_grad = TRUE)
+
+  optimizer <- optim_adam(list(m, W), lr = 0.1)
+  threshold <- 1e-6  
+  prev_value <- Inf
+
+  for (i in 1:100) {
+    optimizer$zero_grad()
+    value <- lsg(m, W, X.centered)
+    value$backward()
+    optimizer$step()
+
+    if (abs(prev_value - value$item()) < threshold) {
+      break
+    }
+    prev_value <- value$item()
+    
+    if (i %% 2 == 0) {
+      cat(sprintf("Iteration %d: loss = %f\n", i, value$item()))
+    }
+  }
+  W
+}
+
+
 ##' The workhorse of uselingam() and LINGAM():
 ##' 'only.perm' and other efficiency {t(X) !!} by Martin Maechler
 estLiNGAM <- function(X, only.perm = FALSE, fastICA.tol = 1e-14,
-                     pmax.nz.brute = 8, pmax.slt.brute = 8, verbose = FALSE)
+                     pmax.nz.brute = 8, pmax.slt.brute = 8, verbose = 1)
 {
   ## --- MM: FIXME:  from  LINGAM(), we just compute  t(X)   twice, once here !!!!
 
@@ -77,9 +131,20 @@ estLiNGAM <- function(X, only.perm = FALSE, fastICA.tol = 1e-14,
 
     ## Call the fastICA algorithm;  _FIXME_: allow all fastICA() arguments
     p <- ncol(X)
-    icares <- fastICA(X, n.comp = p, tol = fastICA.tol,
-		      verbose = if(verbose >= 1) verbose - 1L else FALSE)
-    W <- t(icares$K %*% icares$W)
+    if (verbose == 1){
+      cat('Performing FastICA...\n')
+      icares <- fastICA(X, n.comp = p, tol = fastICA.tol,
+		      verbose = 1)
+      W <- t(icares$K %*% icares$W)
+    } else if (verbose == 2) {
+      ## Start the ICA-SG implementation
+      cat('Performing ICA-SG...\n')
+      W <- ICA.SG(X)
+    } else if (verbose == 3) {
+      ## Start the ICA-SN implementation
+      cat('Performing ICA-SN...\n')
+    } else stop("You must choose a valid model,
+     either 1(FastICA), 2(ICA-SG) or 3(ICA-SN).\n")
 
     ## [Here, we really should perform some tests to see if the 'icasig'
     ## really are independent. If they are not very independent, we should
