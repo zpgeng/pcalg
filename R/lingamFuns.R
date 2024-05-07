@@ -140,6 +140,7 @@ estLiNGAM <- function(X, only.perm = FALSE, fastICA.tol = 1e-14,
       ## Start the ICA-SG implementation
       cat('Performing ICA-SG...\n')
       W <- ICA.SG(X)
+      W <- as(W, "array")
     } else if (verbose == 3) {
       ## Start the ICA-SN implementation
       cat('Performing ICA-SN...\n')
