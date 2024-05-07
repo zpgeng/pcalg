@@ -27,6 +27,7 @@ setAs("LINGAM", "amat", function(from) {
 
 
 ## DEPRECATED:
+#???
 LINGAM <- function(X, verbose = FALSE)
 ## Copyright (c) 2013 - 2015  Jonas Peters  [peters@stat.math.ethz.ch]
 ## All rights reserved.  See the file COPYING for license terms.
