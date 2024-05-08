@@ -119,6 +119,67 @@ ICA.SG <- function(X){
   W
 }
 
+# ICA-SN
+
+torch_dsn <- function(x, xi=0, omega=1, alpha=0, log=FALSE)
+{
+  # require x, xi, omega, alpha to be torch tensors
+  z <- torch_divide((x - xi), omega)
+  logN <- (-torch_log(torch_sqrt(2 * pi)) - torch_log(omega) - 
+             torch_pow(z, 2) / 2)
+  logS <- torch_tensor(pnorm( as.numeric(alpha * z), log.p=TRUE ))
+  logPDF <- logN + logS - torch_tensor(rep(log(1/2), length(x)))
+  logPDF <- replace(logPDF, as(torch_abs(x) == Inf, "logical"), -Inf)
+  logPDF <- replace(logPDF, as(omega <= 0, "logical"), NaN)
+  out <- if(log) logPDF else toch_exp(logPDF)
+  out
+}
+
+lsn <- function(m, W, alpha, X){
+  # Note that m, W, and alpha should be torch tensors
+    p1 <- torch_log(torch_det(W))
+    den <- torch_tensor(0)
+    for (j in 1:nrow(X)){
+      loc <- torch_matmul(torch_t(W), X[j, ])
+      den <- den + torch_sum(torch_dsn(x = loc,
+                           xi = m, 
+                           omega = torch_mean((X[j,] - m)^2),
+                           alpha = alpha,
+                           log = TRUE))
+    }
+    nrow(X) * p1 + den
+}
+
+ICA.SN <- function(X){
+  m <- torch_zeros(ncol(X), requires_grad = TRUE)
+  W <- torch_tensor(torch_diag(torch_ones(ncol(X))),
+   requires_grad = TRUE)
+  alpha <- torch_randn(ncol(X), requires_grad = TRUE)
+
+  optimizer <- optim_adam(list(m, W, alpha), lr = 0.05)
+  threshold <- 0.1 
+  prev_value <- Inf
+
+  # Optimization loop
+  for (i in 1:1000) {
+    optimizer$zero_grad()
+    loss <- -lsn(m, W, alpha, torch_tensor(X))   
+    loss$backward()
+    optimizer$step()
+    
+    if (abs(prev_value - loss$item()) < threshold) {
+      break
+    }
+    prev_value <- loss$item()
+    
+    if (i %% 10 == 0) {
+      cat(sprintf("Iteration %d: loss = %f\n",
+                  i, loss$item()))
+    }
+  }
+  W
+}
+
 
 ##' The workhorse of uselingam() and LINGAM():
 ##' 'only.perm' and other efficiency {t(X) !!} by Martin Maechler
@@ -144,6 +205,8 @@ estLiNGAM <- function(X, only.perm = FALSE, fastICA.tol = 1e-14,
     } else if (verbose == 3) {
       ## Start the ICA-SN implementation
       cat('Performing ICA-SN...\n')
+      W <- ICA.SN(X)
+      W <- as(W, "array")
     } else stop("You must choose a valid model,
      either 1(FastICA), 2(ICA-SG) or 3(ICA-SN).\n")
 
