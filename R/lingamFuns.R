@@ -84,7 +84,7 @@ lsg <- function(m, W, X){
   torch_mul(p1, p2)
 }
 
-ICA.SG <- function(X){
+ICA.SG <- function(X, steps){
   # center the data matrix X
   X.mean <- torch_mean(X, dim = 1)
   X.centered <- X - X.mean
@@ -98,10 +98,10 @@ ICA.SG <- function(X){
   W <- torch_tensor(temp, requires_grad = TRUE)
 
   optimizer <- optim_adam(list(m, W), lr = 0.1)
-  threshold <- 1e-6  
+  threshold <- 0.1
   prev_value <- Inf
 
-  for (i in 1:100) {
+  for (i in 1:steps) {
     optimizer$zero_grad()
     value <- lsg(m, W, X.centered)
     value$backward()
@@ -112,7 +112,7 @@ ICA.SG <- function(X){
     }
     prev_value <- value$item()
     
-    if (i %% 2 == 0) {
+    if (i %% 5 == 0) {
       cat(sprintf("Iteration %d: loss = %f\n", i, value$item()))
     }
   }
@@ -150,7 +150,7 @@ lsn <- function(m, W, alpha, X){
   nrow(X) * p1 + den
 }
 
-ICA.SN <- function(X){
+ICA.SN <- function(X, steps){
   # center the data matrix X
   X.mean <- torch_mean(X, dim = 1)
   X.centered <- X - X.mean
@@ -166,7 +166,7 @@ ICA.SN <- function(X){
   prev_value <- Inf
 
   # Optimization loop
-  for (i in 1:200) {
+  for (i in 1:steps) {
     optimizer$zero_grad()
     loss <- -lsn(m, W, alpha, X.centered)
     loss$backward()
@@ -177,7 +177,7 @@ ICA.SN <- function(X){
     }
     prev_value <- loss$item()
     
-    if (i %% 10 == 0) {
+    if (i %% 5 == 0) {
       cat(sprintf("Iteration %d: loss = %f\n",
                   i, loss$item()))
     }
@@ -189,7 +189,7 @@ ICA.SN <- function(X){
 ##' The workhorse of uselingam() and LINGAM():
 ##' 'only.perm' and other efficiency {t(X) !!} by Martin Maechler
 estLiNGAM <- function(X, only.perm = FALSE, fastICA.tol = 1e-14,
-                     pmax.nz.brute = 8, pmax.slt.brute = 8, verbose = 1)
+                     pmax.nz.brute = 8, pmax.slt.brute = 8, verbose = 1, torch.steps=1000)
 {
   ## --- MM: FIXME:  from  LINGAM(), we just compute  t(X)   twice, once here !!!!
 
@@ -205,13 +205,15 @@ estLiNGAM <- function(X, only.perm = FALSE, fastICA.tol = 1e-14,
     } else if (verbose == 2) {
       ## Start the ICA-SG implementation
       cat('Performing ICA-SG...\n')
-      W <- ICA.SG(X)
+      W <- ICA.SG(X, torch.steps)
       W <- as(W, "array")
+      cat('Done.\n')
     } else if (verbose == 3) {
       ## Start the ICA-SN implementation
       cat('Performing ICA-SN...\n')
-      W <- ICA.SN(X)
+      W <- ICA.SN(X, torch.steps)
       W <- as(W, "array")
+      cat('Done.\n')
     } else stop("You must choose a valid model,
      either 1(FastICA), 2(ICA-SG) or 3(ICA-SN).\n")
 
