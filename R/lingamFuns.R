@@ -140,7 +140,7 @@ lsn <- function(m, W, alpha, X){
   p1 <- torch_log(torch_det(W))
   den <- torch_tensor(0)
   for (j in 1:nrow(X)){
-    loc <- torch_matmul(torch_t(W), X[j, ])
+    loc <- torch_matmul(W, X[j, ])
     den <- den + sum(torch_dsn(x = loc,
                           xi = m, 
                           omega = torch_sqrt(torch_mean((X[j,] - m)^2)),
