@@ -15,9 +15,9 @@
 ##################################################
 ## exported
 ##################################################
-lingam <- function(X, verbose = FALSE)
+lingam <- function(X, verbose = FALSE, steps=1000)
 {
-    structure(uselingam(X, verbose = verbose), class = "LINGAM")
+    structure(uselingam(X, verbose = verbose, torch.steps=steps), class = "LINGAM")
 }
 setOldClass("LINGAM")
 
@@ -40,8 +40,9 @@ LINGAM <- function(X, verbose = FALSE)
 ## internal
 ##################################################
 
-uselingam <- function(X, verbose = FALSE) {
-  t.k <- estLiNGAM(X, only.perm=TRUE, verbose=verbose)$k
+uselingam <- function(X, verbose = FALSE, torch.steps=1000) {
+  t.k <- estLiNGAM(X, only.perm=TRUE, verbose=verbose, 
+  torch.steps=torch.steps)$k
   prune(t(X), t.k, verbose=verbose)
 }
 
