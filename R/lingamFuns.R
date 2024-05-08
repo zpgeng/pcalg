@@ -143,7 +143,7 @@ lsn <- function(m, W, alpha, X){
     loc <- torch_matmul(torch_t(W), X[j, ])
     den <- den + sum(torch_dsn(x = loc,
                           xi = m, 
-                          omega = torch_mean((X[j,] - m)^2),
+                          omega = torch_sqrt(torch_mean((X[j,] - m)^2)),
                           alpha = alpha,
                           log = TRUE))
   }
