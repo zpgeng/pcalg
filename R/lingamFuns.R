@@ -137,33 +137,38 @@ torch_dsn <- function(x, xi=0, omega=1, alpha=0, log=FALSE)
 
 lsn <- function(m, W, alpha, X){
   # Note that m, W, and alpha should be torch tensors
-    p1 <- torch_log(torch_det(W))
-    den <- torch_tensor(0)
-    for (j in 1:nrow(X)){
-      loc <- torch_matmul(torch_t(W), X[j, ])
-      den <- den + torch_sum(torch_dsn(x = loc,
-                           xi = m, 
-                           omega = torch_mean((X[j,] - m)^2),
-                           alpha = alpha,
-                           log = TRUE))
-    }
-    nrow(X) * p1 + den
+  p1 <- torch_log(torch_det(W))
+  den <- torch_tensor(0)
+  for (j in 1:nrow(X)){
+    loc <- torch_matmul(torch_t(W), X[j, ])
+    den <- den + sum(torch_dsn(x = loc,
+                          xi = m, 
+                          omega = torch_mean((X[j,] - m)^2),
+                          alpha = alpha,
+                          log = TRUE))
+  }
+  nrow(X) * p1 + den
 }
 
 ICA.SN <- function(X){
+  # center the data matrix X
+  X.mean <- torch_mean(X, dim = 1)
+  X.centered <- X - X.mean
+  X.centered <- X.centered
+  
   m <- torch_zeros(ncol(X), requires_grad = TRUE)
   W <- torch_tensor(torch_diag(torch_ones(ncol(X))),
    requires_grad = TRUE)
   alpha <- torch_randn(ncol(X), requires_grad = TRUE)
 
-  optimizer <- optim_adam(list(m, W, alpha), lr = 0.05)
-  threshold <- 0.1 
+  optimizer <- optim_adam(list(m, W, alpha), lr = 0.1)
+  threshold <- 0.1
   prev_value <- Inf
 
   # Optimization loop
-  for (i in 1:1000) {
+  for (i in 1:200) {
     optimizer$zero_grad()
-    loss <- -lsn(m, W, alpha, torch_tensor(X))   
+    loss <- -lsn(m, W, alpha, X.centered)
     loss$backward()
     optimizer$step()
     
