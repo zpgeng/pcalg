@@ -85,7 +85,7 @@ lsg <- function(m, W, X){
   torch_add(p1, p2)
 }
 
-ICA.SG <- function(X, steps){
+ICA.SG <- function(X, steps, tol=1e-4){
   # center the data matrix X
   X.mean <- torch_mean(X, dim = 1)
   X.centered <- X - X.mean
@@ -99,7 +99,7 @@ ICA.SG <- function(X, steps){
   W <- torch_tensor(temp, requires_grad = TRUE)
 
   optimizer <- optim_adam(list(m, W), lr = 0.1)
-  threshold <- 0.1
+  threshold <- tol
   prev_value <- Inf
 
   for (i in 1:steps) {
@@ -151,7 +151,7 @@ lsn <- function(m, W, alpha, X){
   nrow(X) * p1 + den
 }
 
-ICA.SN <- function(X, steps){
+ICA.SN <- function(X, steps, tol=1e-4){
   # center the data matrix X
   X.mean <- torch_mean(X, dim = 1)
   X.centered <- X - X.mean
@@ -163,7 +163,7 @@ ICA.SN <- function(X, steps){
   alpha <- torch_randn(ncol(X), requires_grad = TRUE)
 
   optimizer <- optim_adam(list(m, W, alpha), lr = 0.1)
-  threshold <- 0.1
+  threshold <- tol
   prev_value <- Inf
 
   # Optimization loop
@@ -190,7 +190,7 @@ ICA.SN <- function(X, steps){
 ##' The workhorse of uselingam() and LINGAM():
 ##' 'only.perm' and other efficiency {t(X) !!} by Martin Maechler
 estLiNGAM <- function(X, only.perm = FALSE, fastICA.tol = 1e-14,
-                     pmax.nz.brute = 8, pmax.slt.brute = 8, verbose = 1, torch.steps=1000)
+                     pmax.nz.brute = 8, pmax.slt.brute = 8, verbose = 1, torch.steps=1000, tol=1e-4)
 {
   ## --- MM: FIXME:  from  LINGAM(), we just compute  t(X)   twice, once here !!!!
 
@@ -206,13 +206,13 @@ estLiNGAM <- function(X, only.perm = FALSE, fastICA.tol = 1e-14,
     } else if (verbose == 2) {
       ## Start the ICA-SG implementation
       cat('Performing ICA-SG...\n')
-      W <- ICA.SG(X, torch.steps)
+      W <- ICA.SG(X, torch.steps, tol)
       W <- as(W, "array")
       cat('Done.\n')
     } else if (verbose == 3) {
       ## Start the ICA-SN implementation
       cat('Performing ICA-SN...\n')
-      W <- ICA.SN(X, torch.steps)
+      W <- ICA.SN(X, torch.steps, tol)
       W <- as(W, "array")
       cat('Done.\n')
     } else stop("You must choose a valid model,
