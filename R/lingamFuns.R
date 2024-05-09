@@ -15,9 +15,9 @@
 ##################################################
 ## exported
 ##################################################
-lingam <- function(X, verbose = FALSE, steps=1000)
+lingam <- function(X, verbose = FALSE, steps=1000, tol=1e-4)
 {
-    structure(uselingam(X, verbose = verbose, torch.steps=steps), class = "LINGAM")
+    structure(uselingam(X, verbose = verbose, torch.steps=steps, tol=tol), class = "LINGAM")
 }
 setOldClass("LINGAM")
 
@@ -40,9 +40,9 @@ LINGAM <- function(X, verbose = FALSE)
 ## internal
 ##################################################
 
-uselingam <- function(X, verbose = FALSE, torch.steps=1000) {
+uselingam <- function(X, verbose = FALSE, torch.steps=1000, tol=1e-4) {
   t.k <- estLiNGAM(X, only.perm=TRUE, verbose=verbose, 
-  torch.steps=torch.steps)$k
+  torch.steps=torch.steps, tol=tol)$k
   prune(t(X), t.k, verbose=verbose)
 }
 
@@ -156,10 +156,12 @@ ICA.SN <- function(X, steps, tol=1e-4){
   X.mean <- torch_mean(X, dim = 1)
   X.centered <- X - X.mean
   X.centered <- X.centered
+
+  temp0 <- fastICA(X, n.comp = ncol(X))
+  temp <- t(temp0$K %*% temp0$W)
   
   m <- torch_zeros(ncol(X), requires_grad = TRUE)
-  W <- torch_tensor(torch_diag(torch_ones(ncol(X))),
-   requires_grad = TRUE)
+  W <- torch_tensor(temp, requires_grad = TRUE)
   alpha <- torch_randn(ncol(X), requires_grad = TRUE)
 
   optimizer <- optim_adam(list(m, W, alpha), lr = 0.1)
