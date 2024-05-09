@@ -70,7 +70,7 @@ allPerm <- function(n) {
 
 lsg <- function(m, W, X){
   # Note that m and W should be torch tensors
-  p1 <- 1 / (torch_abs(torch_det(W)))^(2/3)
+  p1 <- -2/3 * torch_log(torch_abs(torch_det(W)))
   S1 <- torch_zeros(ncol(X)); S2 <- torch_zeros(ncol(X))
   for (j in 1:ncol(X)) {
     for (i in 1:nrow(X)){
@@ -81,8 +81,8 @@ lsg <- function(m, W, X){
                            S2[j] + torch_pow(flag, 2), S2[j])
     }
   }
-  p2 <- torch_prod(torch_pow(S1, 1/3) + torch_pow(S2, 1/3))
-  torch_mul(p1, p2)
+  p2 <- torch_sum(torch_log(torch_pow(S1, 1/3) + torch_pow(S2, 1/3)))
+  torch_add(p1, p2)
 }
 
 ICA.SG <- function(X, steps){
