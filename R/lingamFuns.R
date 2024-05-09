@@ -98,7 +98,9 @@ ICA.SG <- function(X, steps, tol=1e-4){
   m <- torch_zeros(ncol(X), requires_grad = TRUE)
   W <- torch_tensor(temp, requires_grad = TRUE)
 
-  optimizer <- optim_adam(list(m, W), lr = 0.1)
+  # optimizer <- optim_adam(list(m, W), lr = 0.1)
+  optimizer <- optim_adagrad(list(m, W), lr = 0.1,
+                              lr_decay = 0.9)
   threshold <- tol
   prev_value <- Inf
 
@@ -156,15 +158,15 @@ ICA.SN <- function(X, steps, tol=1e-4){
   X.mean <- torch_mean(X, dim = 1)
   X.centered <- X - X.mean
   X.centered <- X.centered
-
-  temp0 <- fastICA(X, n.comp = ncol(X))
-  temp <- t(temp0$K %*% temp0$W)
   
   m <- torch_zeros(ncol(X), requires_grad = TRUE)
-  W <- torch_tensor(temp, requires_grad = TRUE)
-  alpha <- torch_randn(ncol(X), requires_grad = TRUE)
+  W <- torch_tensor(torch_diag(torch_ones(ncol(X))),
+   requires_grad = TRUE)
+  alpha <- torch_tensor(rep(1, ncol(X)), requires_grad = TRUE)
 
-  optimizer <- optim_adam(list(m, W, alpha), lr = 0.1)
+  #optimizer <- optim_adam(list(m, W, alpha), lr = 0.1)
+  optimizer <- optim_adagrad(list(m, W, alpha), lr = 0.1,
+                              lr_decay = 0.9)
   threshold <- tol
   prev_value <- Inf
 
