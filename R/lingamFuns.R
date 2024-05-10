@@ -91,12 +91,13 @@ ICA.SG <- function(X, steps, tol=1e-4){
   X.centered <- X - X.mean
   X.centered <- X.centered
 
-  temp0 <- fastICA(X, n.comp = ncol(X))
-  temp <- t(temp0$K %*% temp0$W)
+  # temp0 <- fastICA(X, n.comp = ncol(X))
+  # temp <- t(temp0$K %*% temp0$W)
 
   # Initialize W to conform with the dimension
   m <- torch_zeros(ncol(X), requires_grad = TRUE)
-  W <- torch_tensor(temp, requires_grad = TRUE)
+  W <- torch_tensor(torch_diag(torch_ones(ncol(X))),
+   requires_grad = TRUE)
 
   # optimizer <- optim_adam(list(m, W), lr = 0.1)
   optimizer <- optim_adagrad(list(m, W), lr = 0.1,
