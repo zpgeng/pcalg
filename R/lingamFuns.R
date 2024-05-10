@@ -100,8 +100,8 @@ ICA.SG <- function(X, steps, tol=1e-4){
    requires_grad = TRUE)
 
   # optimizer <- optim_adam(list(m, W), lr = 0.1)
-  optimizer <- optim_adagrad(list(m, W), lr = 0.1,
-                              lr_decay = 0.9)
+  optimizer <- optim_adam(list(m, W), lr = 0.1,
+                              weight_decay = 0.9)
   threshold <- tol
   prev_value <- Inf
 
@@ -166,8 +166,8 @@ ICA.SN <- function(X, steps, tol=1e-4){
   alpha <- torch_tensor(rep(1, ncol(X)), requires_grad = TRUE)
 
   #optimizer <- optim_adam(list(m, W, alpha), lr = 0.1)
-  optimizer <- optim_adagrad(list(m, W, alpha), lr = 0.1,
-                              lr_decay = 0.9)
+  optimizer <- optim_adam(list(m, W, alpha), lr = 0.1,
+                              weight_decay = 0.9)
   threshold <- tol
   prev_value <- Inf
 
